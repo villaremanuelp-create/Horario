@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horario UNFV — Emanuel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --card: #161d2e;
+    --accent: #4f8ef7; --accent2: #f97316; --green: #22d3a5;
+    --red: #f87171; --purple: #a78bfa; --yellow: #facc15;
+    --muted: #4b5563; --text: #e2e8f0; --text-dim: #94a3b8; --border: #1e2d45;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Syne',sans-serif; min-height:100vh; padding:24px 16px 80px; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(79,142,247,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(79,142,247,0.04) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .container { position:relative; z-index:1; max-width:900px; margin:0 auto; }
+
+  header { margin-bottom:24px; animation:fadeDown 0.6s ease both; }
+  .tag { display:inline-block; font-family:'Space Mono',monospace; font-size:10px; color:var(--accent); border:1px solid var(--accent); padding:3px 8px; border-radius:3px; letter-spacing:2px; margin-bottom:10px; }
+  h1 { font-size:clamp(26px,6vw,42px); font-weight:800; line-height:1.1; letter-spacing:-1px; }
+  h1 span { color:var(--accent); }
+  .subtitle { font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:6px; letter-spacing:1px; }
+
+  /* NAV */
+  .nav-tabs { display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; padding-bottom:16px; border-bottom:1px solid var(--border); }
+  .nav-tab { padding:10px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-family:'Syne',sans-serif; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+  .nav-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .nav-tab:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
+  .badge { background:var(--border); color:var(--text-dim); border-radius:10px; padding:1px 7px; font-size:10px; font-family:'Space Mono',monospace; min-width:18px; text-align:center; }
+  .nav-tab.active .badge { background:rgba(255,255,255,0.25); color:#fff; }
+
+  /* SECTIONS */
+  .section { display:none; }
+  .section.active { display:block; animation:fadeUp 0.35s ease both; }
+
+  /* NEXT CLASS */
+  #upcoming-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:18px; }
+  .upcoming-label { font-family:'Space Mono',monospace; font-size:10px; color:var(--accent2); letter-spacing:2px; margin-bottom:8px; }
+  .upcoming-name { font-size:17px; font-weight:800; }
+  .upcoming-details { font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:4px; }
+
+  /* SEM TABS */
+  .sem-tabs { display:flex; gap:8px; margin-bottom:18px; }
+  .sem-tab { padding:7px 16px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-family:'Syne',sans-serif; font-weight:700; font-size:12px; cursor:pointer; transition:all 0.2s; }
+  .sem-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  /* SCHEDULE */
+  .schedule-panel { display:none; }
+  .schedule-panel.active { display:block; }
+  .day-block { margin-bottom:14px; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:var(--card); }
+  .day-header { display:flex; align-items:center; gap:12px; padding:11px 18px; background:var(--surface); border-bottom:1px solid var(--border); }
+  .day-label { font-size:10px; font-family:'Space Mono',monospace; letter-spacing:2px; color:var(--accent); font-weight:700; }
+  .day-name { font-size:15px; font-weight:800; }
+  .class-row { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--border); position:relative; overflow:hidden; }
+  .class-row:last-child { border-bottom:none; }
+  .class-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+  .class-row.color-a::before{background:var(--accent)} .class-row.color-b::before{background:var(--accent2)}
+  .class-row.color-c::before{background:var(--green)}  .class-row.color-d::before{background:var(--purple)}
+  .class-row.color-e::before{background:#f472b6}       .class-row.color-f::before{background:var(--yellow)}
+  .class-row.color-g::before{background:#38bdf8}       .class-row.color-h::before{background:#fb923c}
+  .class-time { font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); white-space:nowrap; min-width:72px; }
+  .class-info { flex:1; }
+  .class-name { font-size:13px; font-weight:700; line-height:1.3; }
+  .class-meta { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .aula-badge { font-family:'Space Mono',monospace; font-size:11px; padding:4px 9px; border-radius:4px; background:rgba(79,142,247,0.12); color:var(--accent); border:1px solid rgba(79,142,247,0.25); white-space:nowrap; }
+  .task-dot { width:7px; height:7px; border-radius:50%; background:var(--yellow); flex-shrink:0; }
+  .empty-day { padding:18px; font-family:'Space Mono',monospace; font-size:11px; color:var(--muted); text-align:center; }
+  .today-marker { display:inline-block; font-family:'Space Mono',monospace; font-size:9px; padding:2px 6px; border-radius:3px; background:rgba(34,211,165,0.15); color:var(--green); border:1px solid rgba(34,211,165,0.3); margin-left:8px; animation:blink 2s infinite; }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
+
+  /* CREDITS */
+  .credits-row { display:flex; gap:10px; margin:16px 0; }
+  .credit-pill { flex:1; padding:12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; text-align:center; }
+  .credit-num { font-size:24px; font-weight:800; color:var(--accent); display:block; }
+  .credit-label { font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); letter-spacing:1px; margin-top:2px; }
+
+  /* NOTIF */
+  #notif-banner { display:none; margin-bottom:14px; padding:12px 16px; background:linear-gradient(135deg,#1a2a1a,#0f2015); border:1px solid var(--green); border-radius:10px; }
+  .notif-inner { display:flex; align-items:center; gap:10px; }
+  .notif-text strong { color:var(--green); font-size:13px; display:block; }
+  .notif-text span { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); }
+  .notif-btn { display:flex; align-items:center; gap:8px; padding:11px 18px; background:linear-gradient(135deg,var(--accent),#6366f1); color:#fff; border:none; border-radius:8px; font-family:'Syne',sans-serif; font-weight:700; font-size:13px; cursor:pointer; width:100%; justify-content:center; transition:opacity 0.2s; }
+  .notif-btn:hover { opacity:0.88; }
+  .notif-btn.enabled { background:linear-gradient(135deg,var(--green),#059669); }
+
+  /* SECTION HEADER */
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title { font-size:20px; font-weight:800; }
+  .section-title span { color:var(--accent); }
+  .add-btn { display:flex; align-items:center; gap:6px; padding:8px 16px; border-radius:8px; border:1px solid var(--accent); background:rgba(79,142,247,0.1); color:var(--accent); font-family:'Syne',sans-serif; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s; }
+  .add-btn:hover { background:var(--accent); color:#fff; }
+
+  /* STATS */
+  .stats-row { display:flex; gap:8px; margin-bottom:14px; }
+  .stat-chip { flex:1; padding:10px 8px; background:var(--surface); border:1px solid var(--border); border-radius:10px; text-align:center; }
+  .stat-num { font-size:22px; font-weight:800; display:block; }
+  .stat-num.yellow{color:var(--yellow)} .stat-num.red{color:var(--red)} .stat-num.green{color:var(--green)} .stat-num.purple{color:var(--purple)}
+  .stat-label { font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); letter-spacing:1px; }
+
+  /* FILTER */
+  .filter-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .filter-chip { padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-size:11px; font-family:'Space Mono',monospace; cursor:pointer; transition:all 0.15s; }
+  .filter-chip.active { border-color:var(--accent); color:var(--accent); background:rgba(79,142,247,0.1); }
+
+  /* ITEM CARDS */
+  .item-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:10px; position:relative; overflow:hidden; transition:border 0.2s; }
+  .item-card:hover { border-color:rgba(79,142,247,0.3); }
+  .item-card.done { opacity:0.45; }
+  .item-card.done .item-title { text-decoration:line-through; }
+  .item-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+  .item-card.type-tarea::before{background:var(--yellow)}
+  .item-card.type-grupal::before{background:var(--green)}
+  .item-card.type-examen::before{background:var(--red)}
+  .item-card.type-practica::before{background:var(--purple)}
+
+  .item-top { display:flex; align-items:flex-start; gap:10px; }
+  .item-check { width:20px; height:20px; border-radius:50%; border:2px solid var(--muted); cursor:pointer; flex-shrink:0; margin-top:3px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
+  .item-check.checked { background:var(--green); border-color:var(--green); }
+  .item-check.checked::after { content:'✓'; color:#000; font-size:11px; font-weight:900; }
+  .item-main { flex:1; }
+  .item-title { font-size:15px; font-weight:700; line-height:1.3; margin-bottom:3px; }
+  .item-course { font-family:'Space Mono',monospace; font-size:10px; color:var(--accent); letter-spacing:1px; margin-bottom:6px; }
+  .item-meta-row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .item-badge { font-family:'Space Mono',monospace; font-size:10px; padding:3px 8px; border-radius:4px; }
+  .badge-date  { background:rgba(250,204,21,0.1); color:var(--yellow); border:1px solid rgba(250,204,21,0.25); }
+  .badge-type  { background:rgba(79,142,247,0.1); color:var(--accent); border:1px solid rgba(79,142,247,0.2); }
+  .badge-group { background:rgba(34,211,165,0.1); color:var(--green); border:1px solid rgba(34,211,165,0.25); }
+  .badge-urgent{ background:rgba(248,113,113,0.15); color:var(--red); border:1px solid rgba(248,113,113,0.3); animation:blink 1.5s infinite; }
+  .badge-past  { background:rgba(100,100,100,0.15); color:#666; border:1px solid #333; }
+  .item-desc { font-size:12px; color:var(--text-dim); margin-top:8px; line-height:1.5; }
+  .item-members { margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; }
+  .member-tag { font-family:'Space Mono',monospace; font-size:10px; padding:3px 8px; border-radius:12px; background:rgba(167,139,250,0.12); color:var(--purple); border:1px solid rgba(167,139,250,0.25); }
+  .countdown { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:5px; }
+  .countdown.urgent{color:var(--red)} .countdown.soon{color:var(--yellow)}
+  .item-actions { display:flex; gap:6px; margin-top:10px; }
+  .action-btn { padding:5px 10px; border-radius:5px; border:1px solid var(--border); background:transparent; color:var(--text-dim); font-size:11px; cursor:pointer; transition:all 0.15s; font-family:'Space Mono',monospace; }
+  .action-btn:hover { border-color:var(--red); color:var(--red); }
+  .action-btn.edit:hover { border-color:var(--accent); color:var(--accent); }
+
+  .empty-state { text-align:center; padding:48px 20px; color:var(--text-dim); }
+  .empty-state .emoji { font-size:36px; margin-bottom:12px; }
+  .empty-state p { font-size:14px; line-height:1.6; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; width:100%; max-width:480px; animation:fadeDown 0.25s ease both; max-height:90vh; overflow-y:auto; }
+  .modal h2 { font-size:18px; font-weight:800; margin-bottom:18px; }
+  .modal h2 span { color:var(--accent); }
+  .form-group { margin-bottom:14px; }
+  .form-label { font-family:'Space Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:1px; margin-bottom:6px; display:block; }
+  .form-input,.form-select,.form-textarea { width:100%; padding:10px 14px; background:var(--card); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'Syne',sans-serif; font-size:14px; outline:none; transition:border 0.2s; }
+  .form-input:focus,.form-select:focus,.form-textarea:focus { border-color:var(--accent); }
+  .form-select option { background:var(--card); }
+  .form-textarea { resize:vertical; min-height:72px; }
+  .form-row { display:flex; gap:10px; }
+  .form-row .form-group { flex:1; }
+  #members-section { display:none; }
+  .members-input-row { display:flex; gap:8px; }
+  .members-input-row .form-input { flex:1; }
+  .add-member-btn { padding:10px 14px; background:rgba(167,139,250,0.1); border:1px solid var(--purple); color:var(--purple); border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.2s; }
+  .add-member-btn:hover { background:var(--purple); color:#fff; }
+  .members-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .member-remove { display:flex; align-items:center; gap:5px; font-family:'Space Mono',monospace; font-size:11px; padding:4px 10px; border-radius:12px; background:rgba(167,139,250,0.12); color:var(--purple); border:1px solid rgba(167,139,250,0.25); cursor:pointer; }
+  .member-remove:hover { background:rgba(248,113,113,0.15); color:var(--red); border-color:var(--red); }
+  .modal-actions { display:flex; gap:10px; margin-top:18px; }
+  .modal-actions button { flex:1; padding:12px; border-radius:8px; font-family:'Syne',sans-serif; font-weight:700; font-size:14px; cursor:pointer; transition:opacity 0.2s; }
+  .btn-cancel { background:var(--card); color:var(--text-dim); border:1px solid var(--border); }
+  .btn-save { background:linear-gradient(135deg,var(--accent),#6366f1); color:#fff; border:none; }
+  .btn-cancel:hover,.btn-save:hover { opacity:0.85; }
+
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="tag">UNFV · ECONOMÍA</div>
+    <h1>Horario <span>2026</span></h1>
+    <p class="subtitle">VILLAR PONCE, EMANUEL CESAR EDU · CÓD. 2025038144</p>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSection('horario',this)">📅 Horario</button>
+    <button class="nav-tab" onclick="showSection('tareas',this)">📝 Tareas <span class="badge" id="badge-tareas">0</span></button>
+    <button class="nav-tab" onclick="showSection('examenes',this)">🎯 Exámenes <span class="badge" id="badge-examenes">0</span></button>
+  </div>
+
+  <!-- ── HORARIO ── -->
+  <div class="section active" id="section-horario">
+    <div id="upcoming-card">
+      <div class="upcoming-label">▶ PRÓXIMA CLASE</div>
+      <div class="upcoming-name" id="next-name">Calculando...</div>
+      <div class="upcoming-details" id="next-details"></div>
+    </div>
+    <div id="notif-banner">
+      <div class="notif-inner">
+        <span style="font-size:22px">🔔</span>
+        <div class="notif-text"><strong id="notif-title"></strong><span id="notif-body"></span></div>
+      </div>
+    </div>
+    <div class="sem-tabs">
+      <button class="sem-tab active" onclick="showSemestre(1)">2026-I (Ciclo III)</button>
+      <button class="sem-tab" onclick="showSemestre(2)">2026-II (Ciclo IV)</button>
+    </div>
+    <div class="schedule-panel active" id="panel-1"></div>
+    <div class="schedule-panel" id="panel-2"></div>
+    <div class="credits-row">
+      <div class="credit-pill"><span class="credit-num">20</span><span class="credit-label">CRÉDITOS 2026-I</span></div>
+      <div class="credit-pill"><span class="credit-num">23</span><span class="credit-label">CRÉDITOS 2026-II</span></div>
+    </div>
+    <button class="notif-btn" id="notif-toggle" onclick="toggleNotifications()">🔔 Activar notificaciones de clase</button>
+  </div>
+
+  <!-- ── TAREAS ── -->
+  <div class="section" id="section-tareas">
+    <div class="section-header">
+      <div class="section-title">📝 <span>Tareas</span></div>
+      <button class="add-btn" onclick="openModal('tarea')">+ Nueva tarea</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-chip"><span class="stat-num yellow" id="stat-pendientes">0</span><span class="stat-label">PENDIENTES</span></div>
+      <div class="stat-chip"><span class="stat-num green"  id="stat-completadas">0</span><span class="stat-label">LISTAS</span></div>
+      <div class="stat-chip"><span class="stat-num purple" id="stat-grupales">0</span><span class="stat-label">GRUPALES</span></div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="setFilter('tareas','all',this)">Todas</button>
+      <button class="filter-chip" onclick="setFilter('tareas','pendiente',this)">Pendientes</button>
+      <button class="filter-chip" onclick="setFilter('tareas','grupal',this)">Grupales</button>
+      <button class="filter-chip" onclick="setFilter('tareas','done',this)">Completadas</button>
+    </div>
+    <div id="tareas-list"></div>
+  </div>
+
+  <!-- ── EXÁMENES ── -->
+  <div class="section" id="section-examenes">
+    <div class="section-header">
+      <div class="section-title">🎯 <span>Exámenes y Prácticas</span></div>
+      <button class="add-btn" onclick="openModal('examen')">+ Nuevo</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-chip"><span class="stat-num red"    id="stat-examenes">0</span><span class="stat-label">EXÁMENES</span></div>
+      <div class="stat-chip"><span class="stat-num purple" id="stat-practicas">0</span><span class="stat-label">PRÁCTICAS</span></div>
+      <div class="stat-chip"><span class="stat-num yellow" id="stat-proximos">0</span><span class="stat-label">PRÓX. 7 DÍAS</span></div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="setFilter('examenes','all',this)">Todos</button>
+      <button class="filter-chip" onclick="setFilter('examenes','examen',this)">Exámenes</button>
+      <button class="filter-chip" onclick="setFilter('examenes','practica',this)">Prácticas</button>
+      <button class="filter-chip" onclick="setFilter('examenes','proximo',this)">Próximos 7d</button>
+    </div>
+    <div id="examenes-list"></div>
+  </div>
+</div>
+
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h2 id="modal-title">Nueva <span>Tarea</span></h2>
+    <div class="form-group">
+      <label class="form-label">TÍTULO *</label>
+      <input class="form-input" id="f-titulo" placeholder="Ej: Informe de microeconomía...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">CURSO *</label>
+        <select class="form-select" id="f-curso"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">TIPO</label>
+        <select class="form-select" id="f-tipo" onchange="onTipoChange()">
+          <option value="tarea">Individual</option>
+          <option value="grupal">Grupal</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">FECHA ENTREGA *</label>
+        <input class="form-input" id="f-fecha" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">HORA (opcional)</label>
+        <input class="form-input" id="f-hora" type="time">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">NOTAS / DESCRIPCIÓN</label>
+      <textarea class="form-textarea" id="f-desc" placeholder="Páginas, requisitos, formato..."></textarea>
+    </div>
+    <div id="members-section">
+      <div class="form-group">
+        <label class="form-label">INTEGRANTES DEL GRUPO</label>
+        <div class="members-input-row">
+          <input class="form-input" id="f-member-input" placeholder="Nombre del compañero..." onkeydown="if(event.key==='Enter'){addMember();event.preventDefault();}">
+          <button class="add-member-btn" onclick="addMember()">+</button>
+        </div>
+        <div class="members-list" id="members-list"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveItem()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════ DATA ═══════════
+const COLORS=['a','b','c','d','e','f','g','h'];
+const DIAS=['','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DIAS_SHORT=['','LUN','MAR','MIE','JUE','VIE','SAB'];
+const MONTHS=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+const ALL_COURSES=[
+  {cod:'101627',nombre:'Análisis Matemático para Economistas II',sem:1},
+  {cod:'101156',nombre:'Innovación y Emprendedurismo',sem:1},
+  {cod:'101625',nombre:'Rel. Interlaborales c/ P. Habilidades Esp.',sem:1},
+  {cod:'101626',nombre:'Análisis Microeconómico I',sem:1},
+  {cod:'101629',nombre:'Matemática Financiera y Actuarial',sem:1},
+  {cod:'100387',nombre:'Inglés III',sem:1},
+  {cod:'101157',nombre:'Liderazgo y Responsabilidad Social',sem:1},
+  {cod:'101155',nombre:'Adm. de Riesgos y Medio Ambiente',sem:1},
+  {cod:'101631',nombre:'Análisis Matemático para Economistas III',sem:2},
+  {cod:'101388',nombre:'Marketing Empresarial',sem:2},
+  {cod:'101630',nombre:'Análisis Microeconómico II',sem:2},
+  {cod:'101662',nombre:'Análisis e Interp. de Estados Financieros',sem:2},
+  {cod:'101632',nombre:'Estadística Inferencial Aplicada',sem:2},
+  {cod:'101633',nombre:'Teoría de Juegos y de las Decisiones',sem:2},
+];
+
+const SEMESTRE1=[
+  {dia:1,h_start:[11,20],h_end:[13,0], nombre:'Análisis Matemático para Economistas II',   cod:'101627',aula:'A-502',seccion:'M B',color:0},
+  {dia:1,h_start:[14,40],h_end:[16,20],nombre:'Liderazgo y Responsabilidad Social',         cod:'101157',aula:'A-502',seccion:'T D',color:1},
+  {dia:2,h_start:[13,0], h_end:[14,40],nombre:'Rel. Interlaborales c/ P. Habilidades Esp.',cod:'101625',aula:'A-501',seccion:'T C',color:2},
+  {dia:2,h_start:[14,40],h_end:[16,20],nombre:'Innovación y Emprendedurismo',              cod:'101156',aula:'A-501',seccion:'T C',color:3},
+  {dia:2,h_start:[16,20],h_end:[18,0], nombre:'Matemática Financiera y Actuarial',         cod:'101629',aula:'A-501',seccion:'T C',color:4},
+  {dia:3,h_start:[13,0], h_end:[14,40],nombre:'Adm. de Riesgos y Medio Ambiente',          cod:'101155',aula:'A-503',seccion:'T E',color:6},
+  {dia:3,h_start:[14,40],h_end:[16,20],nombre:'Análisis Microeconómico I',                 cod:'101626',aula:'A-501',seccion:'T C',color:5},
+  {dia:3,h_start:[16,20],h_end:[18,0], nombre:'Liderazgo y Responsabilidad Social',        cod:'101157',aula:'A-502',seccion:'T D',color:1},
+  {dia:4,h_start:[11,20],h_end:[13,0], nombre:'Análisis Matemático para Economistas II',   cod:'101627',aula:'A-502',seccion:'M B',color:0},
+  {dia:4,h_start:[13,0], h_end:[14,40],nombre:'Inglés III',                                cod:'100387',aula:'A-502',seccion:'T D',color:7},
+  {dia:4,h_start:[16,20],h_end:[18,0], nombre:'Innovación y Emprendedurismo',              cod:'101156',aula:'A-501',seccion:'T C',color:3},
+  {dia:5,h_start:[13,0], h_end:[15,30],nombre:'Análisis Microeconómico I',                 cod:'101626',aula:'A-501',seccion:'T C',color:5},
+  {dia:5,h_start:[17,10],h_end:[18,0], nombre:'Matemática Financiera y Actuarial',         cod:'101629',aula:'A-501',seccion:'T C',color:4},
+];
+
+const SEMESTRE2=[
+  {dia:1,h_start:[10,30],h_end:[13,0], nombre:'Análisis Matemático para Economistas III',  cod:'101631',aula:'A-502',seccion:'M B',color:0},
+  {dia:1,h_start:[13,0], h_end:[15,30],nombre:'Análisis Microeconómico II',                cod:'101630',aula:'A-501',seccion:'T C',color:1},
+  {dia:1,h_start:[15,30],h_end:[18,0], nombre:'Teoría de Juegos y de las Decisiones',     cod:'101633',aula:'A-503',seccion:'T E',color:3},
+  {dia:2,h_start:[13,0], h_end:[15,30],nombre:'Estadística Inferencial Aplicada',          cod:'101632',aula:'A-502',seccion:'T D',color:4},
+  {dia:3,h_start:[13,0], h_end:[14,40],nombre:'Análisis e Interp. de Estados Financieros',cod:'101662',aula:'A-501',seccion:'T C',color:2},
+  {dia:3,h_start:[14,40],h_end:[16,20],nombre:'Marketing Empresarial',                    cod:'101388',aula:'A-501',seccion:'T C',color:5},
+  {dia:3,h_start:[16,20],h_end:[18,0], nombre:'Análisis Microeconómico II',                cod:'101630',aula:'A-501',seccion:'T C',color:1},
+  {dia:4,h_start:[8,0],  h_end:[9,40], nombre:'Análisis Matemático para Economistas III',  cod:'101631',aula:'A-502',seccion:'M B',color:0},
+  {dia:4,h_start:[14,40],h_end:[16,20],nombre:'Teoría de Juegos y de las Decisiones',     cod:'101633',aula:'A-503',seccion:'T E',color:3},
+  {dia:4,h_start:[16,20],h_end:[18,0], nombre:'Estadística Inferencial Aplicada',          cod:'101632',aula:'A-502',seccion:'T D',color:4},
+  {dia:5,h_start:[13,50],h_end:[15,30],nombre:'Marketing Empresarial',                    cod:'101388',aula:'A-501',seccion:'T C',color:5},
+  {dia:5,h_start:[15,30],h_end:[18,0], nombre:'Análisis e Interp. de Estados Financieros',cod:'101662',aula:'A-501',seccion:'T C',color:2},
+];
+
+// ═══════════ STORAGE ═══════════
+function load(k){try{return JSON.parse(localStorage.getItem(k))||[];}catch{return[];}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+let tareas=load('unfv_tareas');
+let examenes=load('unfv_examenes');
+
+// ═══════════ NAV ═══════════
+function showSection(name,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='tareas') renderTareas();
+  if(name==='examenes') renderExamenes();
+}
+
+// ═══════════ SCHEDULE ═══════════
+function fmt(h,m){return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
+function toMin(h,m){return h*60+m;}
+function hasPendingTask(cod){return tareas.some(t=>t.cod===cod&&!t.done);}
+
+function renderPanel(data,pid){
+  const panel=document.getElementById(pid);
+  const todayDow=new Date().getDay();
+  let html='';
+  for(let d=1;d<=5;d++){
+    const cls=data.filter(c=>c.dia===d).sort((a,b)=>toMin(...a.h_start)-toMin(...b.h_start));
+    const isToday=todayDow===d;
+    html+=`<div class="day-block"><div class="day-header"><span class="day-label">${DIAS_SHORT[d]}</span><span class="day-name">${DIAS[d]}${isToday?'<span class="today-marker">HOY</span>':''}</span></div>`;
+    if(!cls.length){html+=`<div class="empty-day">— Sin clases —</div>`;}
+    else cls.forEach(c=>{
+      html+=`<div class="class-row color-${COLORS[c.color]}">
+        <div class="class-time">${fmt(...c.h_start)}<br>${fmt(...c.h_end)}</div>
+        <div class="class-info"><div class="class-name">${c.nombre}</div><div class="class-meta">COD ${c.cod} · SEC ${c.seccion}</div></div>
+        ${hasPendingTask(c.cod)?'<div class="task-dot" title="Tiene tareas pendientes"></div>':''}
+        <div class="aula-badge">${c.aula}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  panel.innerHTML=html;
+}
+
+function renderSchedules(){renderPanel(SEMESTRE1,'panel-1');renderPanel(SEMESTRE2,'panel-2');}
+renderSchedules();
+
+function showSemestre(n){
+  document.querySelectorAll('.sem-tab').forEach((t,i)=>t.classList.toggle('active',i===n-1));
+  document.querySelectorAll('.schedule-panel').forEach((p,i)=>p.classList.toggle('active',i===n-1));
+}
+
+// ═══════════ NEXT CLASS ═══════════
+function getNextClass(){
+  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  for(let offset=0;offset<7;offset++){
+    const t=new Date(now); t.setDate(now.getDate()+offset);
+    const dow=t.getDay();
+    if(dow===0||dow===6) continue;
+    const dc=[...SEMESTRE1].filter(c=>c.dia===dow).sort((a,b)=>toMin(...a.h_start)-toMin(...b.h_start));
+    for(const c of dc){
+      if(offset===0&&toMin(...c.h_start)<=nowMin) continue;
+      return{cls:c,daysAhead:offset};
+    }
+  }
+  return null;
+}
+function updateNextClass(){
+  const r=getNextClass();
+  if(!r){document.getElementById('next-name').textContent='Sin más clases';return;}
+  const{cls,daysAhead}=r;
+  document.getElementById('next-name').textContent=cls.nombre;
+  const t=new Date(); t.setDate(t.getDate()+daysAhead);
+  const when=daysAhead===0?'Hoy':daysAhead===1?'Mañana':DIAS[t.getDay()];
+  document.getElementById('next-details').textContent=`${when} · ${fmt(...cls.h_start)} – ${fmt(...cls.h_end)} · Aula ${cls.aula}`;
+}
+updateNextClass();
+
+// ═══════════ NOTIFICATIONS ═══════════
+let notifEnabled=false,notifInterval=null;
+const shownN=new Set();
+
+function setNotifUI(active){
+  document.getElementById('notif-toggle').textContent=active?'✅ Notificaciones activas':'🔔 Activar notificaciones de clase';
+  document.getElementById('notif-toggle').classList.toggle('enabled',active);
+}
+
+function startNotifLoop(){
+  notifEnabled=true;
+  setNotifUI(true);
+  localStorage.setItem('unfv_notif','1');
+  checkN();
+  notifInterval=setInterval(checkN,30000);
+}
+
+async function toggleNotifications(){
+  if(!notifEnabled){
+    if(!('Notification'in window)){alert('Tu navegador no soporta notificaciones.');return;}
+    const p=await Notification.requestPermission();
+    if(p!=='granted'){alert('Debes permitir las notificaciones en la configuración del navegador.');return;}
+    startNotifLoop();
+  }else{
+    notifEnabled=false;
+    clearInterval(notifInterval);
+    setNotifUI(false);
+    localStorage.setItem('unfv_notif','0');
+  }
+}
+
+// Auto-reactivar si estaban activas y el permiso sigue concedido
+(async function autoRestoreNotif(){
+  const pref=localStorage.getItem('unfv_notif');
+  if(pref==='1'&&'Notification'in window&&Notification.permission==='granted'){
+    startNotifLoop();
+  }
+})();
+function checkN(){
+  const now=new Date(); const dow=now.getDay();
+  if(dow===0||dow===6) return;
+  const nowMin=now.getHours()*60+now.getMinutes();
+  SEMESTRE1.filter(c=>c.dia===dow).forEach(c=>{
+    const sm=toMin(...c.h_start);
+    const key=`${c.cod}-${c.dia}-${sm}-${now.toDateString()}`;
+    if(nowMin>=sm-10&&nowMin<sm-8&&!shownN.has(key)){
+      shownN.add(key);
+      const title=`🎓 Clase en 10 min: ${c.nombre}`;
+      const body=`${fmt(...c.h_start)} → ${fmt(...c.h_end)} · Aula ${c.aula}`;
+      document.getElementById('notif-banner').style.display='block';
+      document.getElementById('notif-title').textContent=title;
+      document.getElementById('notif-body').textContent=body;
+      setTimeout(()=>{document.getElementById('notif-banner').style.display='none';},30000);
+      if(Notification.permission==='granted') new Notification(title,{body,tag:`clase-${c.cod}`,requireInteraction:true});
+      updateNextClass();
+    }
+  });
+}
+
+// ═══════════ MODAL ═══════════
+let modalMode='tarea', editingId=null, tempMembers=[];
+
+function openModal(mode,id=null){
+  modalMode=mode; editingId=id; tempMembers=[];
+  const tipoSel=document.getElementById('f-tipo');
+  const memSec=document.getElementById('members-section');
+
+  // Courses
+  document.getElementById('f-curso').innerHTML=ALL_COURSES.map(c=>`<option value="${c.cod}">${c.nombre}</option>`).join('');
+
+  if(mode==='tarea'){
+    document.getElementById('modal-title').innerHTML='Nueva <span>Tarea</span>';
+    tipoSel.innerHTML=`<option value="tarea">Individual</option><option value="grupal">Grupal</option>`;
+  }else{
+    document.getElementById('modal-title').innerHTML='Nuevo <span>Examen / Práctica</span>';
+    tipoSel.innerHTML=`<option value="examen">Examen</option><option value="practica">Práctica Calificada</option>`;
+  }
+  memSec.style.display='none';
+
+  if(id!==null){
+    const arr=mode==='tarea'?tareas:examenes;
+    const item=arr.find(x=>x.id===id);
+    if(item){
+      document.getElementById('f-titulo').value=item.titulo;
+      document.getElementById('f-curso').value=item.cod;
+      document.getElementById('f-tipo').value=item.tipo;
+      document.getElementById('f-fecha').value=item.fecha;
+      document.getElementById('f-hora').value=item.hora||'';
+      document.getElementById('f-desc').value=item.desc||'';
+      if(item.tipo==='grupal'){tempMembers=[...item.members||[]];memSec.style.display='block';}
+      renderMembers();
+      document.getElementById('modal-title').innerHTML=mode==='tarea'?'Editar <span>Tarea</span>':'Editar <span>Examen</span>';
+    }
+  }else{
+    ['f-titulo','f-fecha','f-hora','f-desc'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('members-list').innerHTML='';
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function onTipoChange(){
+  const v=document.getElementById('f-tipo').value;
+  document.getElementById('members-section').style.display=(modalMode==='tarea'&&v==='grupal')?'block':'none';
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+function addMember(){
+  const inp=document.getElementById('f-member-input');
+  const n=inp.value.trim(); if(!n) return;
+  tempMembers.push(n); inp.value=''; renderMembers();
+}
+function renderMembers(){
+  document.getElementById('members-list').innerHTML=tempMembers.map((m,i)=>
+    `<span class="member-remove" onclick="removeMember(${i})">👤 ${m} ✕</span>`).join('');
+}
+function removeMember(i){tempMembers.splice(i,1);renderMembers();}
+
+function saveItem(){
+  const titulo=document.getElementById('f-titulo').value.trim();
+  const cod=document.getElementById('f-curso').value;
+  const tipo=document.getElementById('f-tipo').value;
+  const fecha=document.getElementById('f-fecha').value;
+  const hora=document.getElementById('f-hora').value;
+  const desc=document.getElementById('f-desc').value.trim();
+  if(!titulo||!cod||!fecha){alert('Completa los campos obligatorios (*)');return;}
+  const course=ALL_COURSES.find(c=>c.cod===cod);
+  const item={id:editingId||Date.now(),titulo,cod,courseName:course?.nombre||cod,tipo,fecha,hora,desc,members:tipo==='grupal'?[...tempMembers]:[],done:false,createdAt:new Date().toISOString()};
+  if(modalMode==='tarea'){
+    if(editingId!==null){const i=tareas.findIndex(t=>t.id===editingId);if(i>-1)tareas[i]={...tareas[i],...item,done:tareas[i].done};}
+    else tareas.push(item);
+    save('unfv_tareas',tareas); renderTareas();
+  }else{
+    if(editingId!==null){const i=examenes.findIndex(t=>t.id===editingId);if(i>-1)examenes[i]=item;}
+    else examenes.push(item);
+    save('unfv_examenes',examenes); renderExamenes();
+  }
+  updateBadges(); renderSchedules(); closeModal();
+}
+
+// ═══════════ HELPERS ═══════════
+function formatDate(s){
+  if(!s) return '';
+  const[y,m,d]=s.split('-');
+  return `${d} ${MONTHS[+m]} ${y}`;
+}
+function daysUntil(fecha){
+  const now=new Date(); now.setHours(0,0,0,0);
+  return Math.round((new Date(fecha+'T00:00:00')-now)/(86400000));
+}
+function countdownHTML(fecha,hora){
+  const d=daysUntil(fecha);
+  if(d<0)  return `<div class="countdown urgent">Vencida hace ${Math.abs(d)} día${Math.abs(d)>1?'s':''}</div>`;
+  if(d===0)return `<div class="countdown urgent">⚠ Hoy${hora?' a las '+hora:''}</div>`;
+  if(d===1)return `<div class="countdown urgent">⚠ Mañana${hora?' a las '+hora:''}</div>`;
+  if(d<=4) return `<div class="countdown soon">En ${d} días</div>`;
+  return    `<div class="countdown">En ${d} días</div>`;
+}
+
+// ═══════════ RENDER TAREAS ═══════════
+let tareasFilter='all';
+function setFilter(sec,f,el){
+  if(sec==='tareas') tareasFilter=f;
+  else examenesFilter=f;
+  el.closest('.filter-row').querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  if(sec==='tareas') renderTareas();
+  else renderExamenes();
+}
+
+function renderTareas(){
+  let list=[...tareas].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  if(tareasFilter==='pendiente') list=list.filter(t=>!t.done);
+  if(tareasFilter==='grupal')    list=list.filter(t=>t.tipo==='grupal');
+  if(tareasFilter==='done')      list=list.filter(t=>t.done);
+  document.getElementById('stat-pendientes').textContent=tareas.filter(t=>!t.done).length;
+  document.getElementById('stat-completadas').textContent=tareas.filter(t=>t.done).length;
+  document.getElementById('stat-grupales').textContent=tareas.filter(t=>t.tipo==='grupal'&&!t.done).length;
+  const el=document.getElementById('tareas-list');
+  if(!list.length){el.innerHTML=`<div class="empty-state"><div class="emoji">📭</div><p>No hay tareas aquí.<br>Añade una con el botón +</p></div>`;return;}
+  el.innerHTML=list.map(t=>`
+    <div class="item-card type-${t.tipo} ${t.done?'done':''}">
+      <div class="item-top">
+        <div class="item-check ${t.done?'checked':''}" onclick="toggleDone(${t.id})"></div>
+        <div class="item-main">
+          <div class="item-title">${t.titulo}</div>
+          <div class="item-course">${t.courseName}</div>
+          <div class="item-meta-row">
+            <span class="item-badge badge-date">📅 ${formatDate(t.fecha)}${t.hora?' '+t.hora:''}</span>
+            <span class="item-badge badge-type">${t.tipo==='grupal'?'👥 Grupal':'👤 Individual'}</span>
+            ${daysUntil(t.fecha)<=2&&!t.done?`<span class="item-badge badge-urgent">⚠ URGENTE</span>`:''}
+          </div>
+          ${!t.done?countdownHTML(t.fecha,t.hora):''}
+          ${t.desc?`<div class="item-desc">${t.desc}</div>`:''}
+          ${t.members&&t.members.length?`<div class="item-members">${t.members.map(m=>`<span class="member-tag">👤 ${m}</span>`).join('')}</div>`:''}
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="action-btn edit" onclick="openModal('tarea',${t.id})">✏ Editar</button>
+        <button class="action-btn" onclick="deleteItem('tarea',${t.id})">🗑 Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════ RENDER EXAMENES ═══════════
+let examenesFilter='all';
+function renderExamenes(){
+  let list=[...examenes].sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  if(examenesFilter==='examen')   list=list.filter(e=>e.tipo==='examen');
+  if(examenesFilter==='practica') list=list.filter(e=>e.tipo==='practica');
+  if(examenesFilter==='proximo')  list=list.filter(e=>{const d=daysUntil(e.fecha);return d>=0&&d<=7;});
+  document.getElementById('stat-examenes').textContent=examenes.filter(e=>e.tipo==='examen').length;
+  document.getElementById('stat-practicas').textContent=examenes.filter(e=>e.tipo==='practica').length;
+  document.getElementById('stat-proximos').textContent=examenes.filter(e=>{const d=daysUntil(e.fecha);return d>=0&&d<=7;}).length;
+  const el=document.getElementById('examenes-list');
+  if(!list.length){el.innerHTML=`<div class="empty-state"><div class="emoji">🎯</div><p>Sin exámenes registrados.<br>Añade uno con el botón +</p></div>`;return;}
+  el.innerHTML=list.map(e=>`
+    <div class="item-card type-${e.tipo}">
+      <div class="item-top">
+        <div class="item-main">
+          <div class="item-title">${e.tipo==='examen'?'📝':'📋'} ${e.titulo}</div>
+          <div class="item-course">${e.courseName}</div>
+          <div class="item-meta-row">
+            <span class="item-badge badge-date">📅 ${formatDate(e.fecha)}${e.hora?' a las '+e.hora:''}</span>
+            <span class="item-badge badge-type">${e.tipo==='examen'?'Examen':'Práctica'}</span>
+            ${daysUntil(e.fecha)>=0&&daysUntil(e.fecha)<=3?`<span class="item-badge badge-urgent">⚠ PRÓXIMO</span>`:''}
+            ${daysUntil(e.fecha)<0?`<span class="item-badge badge-past">Pasado</span>`:''}
+          </div>
+          ${daysUntil(e.fecha)>=0?countdownHTML(e.fecha,e.hora):''}
+          ${e.desc?`<div class="item-desc">${e.desc}</div>`:''}
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="action-btn edit" onclick="openModal('examen',${e.id})">✏ Editar</button>
+        <button class="action-btn" onclick="deleteItem('examen',${e.id})">🗑 Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════ ACTIONS ═══════════
+function toggleDone(id){
+  const t=tareas.find(x=>x.id===id);
+  if(t){t.done=!t.done;save('unfv_tareas',tareas);renderTareas();updateBadges();renderSchedules();}
+}
+function deleteItem(type,id){
+  if(!confirm('¿Eliminar este elemento?')) return;
+  if(type==='tarea'){tareas=tareas.filter(x=>x.id!==id);save('unfv_tareas',tareas);renderTareas();}
+  else{examenes=examenes.filter(x=>x.id!==id);save('unfv_examenes',examenes);renderExamenes();}
+  updateBadges(); renderSchedules();
+}
+function updateBadges(){
+  const pt=tareas.filter(t=>!t.done).length;
+  const pe=examenes.filter(e=>daysUntil(e.fecha)>=0).length;
+  document.getElementById('badge-tareas').textContent=pt||'';
+  document.getElementById('badge-examenes').textContent=pe||'';
+}
+updateBadges();
+</script>
+</body>
+</html>
